@@ -9,7 +9,7 @@ no learning value (e.g. low-level JOSE/JWT signing).
 
 ## Running
 
-Requires Go 1.24+.
+Requires Go 1.27+.
 
 ```sh
 go run ./cmd/eyedp
