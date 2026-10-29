@@ -20,6 +20,6 @@ func New(logger *slog.Logger) http.Handler {
 	return httpx.LogRequests(logger, mux)
 }
 
-func handleHealth(w http.ResponseWriter, r *http.Request) {
+func handleHealth(w http.ResponseWriter, _ *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }

@@ -24,7 +24,12 @@ curl localhost:8080/healthz
 ```sh
 go test ./...                    # run tests
 go build -o bin/eyedp ./cmd/eyedp
+golangci-lint run                # lint (config in .golangci.yml)
+golangci-lint fmt                # format (gofmt + goimports)
 ```
+
+CI (`.github/workflows/ci.yml`) runs lint, `go mod tidy` check, vet,
+race-enabled tests and a build on every pull request and push to `main`.
 
 ## Architecture
 
