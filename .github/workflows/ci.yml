@@ -41,5 +41,19 @@ jobs:
         run: go vet ./...
       - name: Test
         run: go test -race -coverprofile=coverage.out ./...
+      - name: Coverage summary
+        run: |
+          total=$(go tool cover -func=coverage.out | awk '/^total:/ {print $NF}')
+          {
+            echo "## Coverage: ${total}"
+            echo
+            echo "<details><summary>Per-function coverage</summary>"
+            echo
+            echo '```'
+            go tool cover -func=coverage.out | sed 's|^github.com/dkartachov/eyedp/||'
+            echo '```'
+            echo
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Build
         run: go build -o bin/eyedp ./cmd/eyedp

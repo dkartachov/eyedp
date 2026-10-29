@@ -30,6 +30,7 @@ golangci-lint fmt                # format (gofmt + goimports)
 
 CI (`.github/workflows/ci.yml`) runs lint, `go mod tidy` check, vet,
 race-enabled tests and a build on every pull request and push to `main`.
+Each run's summary page shows a coverage report.
 
 ## Architecture
 
