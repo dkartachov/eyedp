@@ -5,19 +5,38 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/dkartachov/eyedp/internal/authn"
 	"github.com/dkartachov/eyedp/internal/httpx"
+	"github.com/dkartachov/eyedp/web"
 )
+
+// Deps are the domain services the HTTP layer is built on.
+type Deps struct {
+	Logger   *slog.Logger
+	Auth     authn.CredentialChecker
+	Sessions authn.SessionManager
+	Users    authn.UserGetter
+}
 
 // New returns the root HTTP handler for the identity provider.
 //
 // As feature packages are added (oauth, oidc, keys, ...), register their
 // routes here, e.g. mux.HandleFunc("GET /authorize", oauthHandler.Authorize).
-func New(logger *slog.Logger) http.Handler {
+func New(d Deps) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", handleHealth)
 
-	return httpx.LogRequests(logger, mux)
+	login := &authn.Handler{
+		Logger:    d.Logger,
+		Auth:      d.Auth,
+		Sessions:  d.Sessions,
+		Users:     d.Users,
+		Templates: web.Templates,
+	}
+	login.Register(mux)
+
+	return httpx.LogRequests(d.Logger, mux)
 }
 
 func handleHealth(w http.ResponseWriter, _ *http.Request) {

@@ -20,6 +20,7 @@ curl localhost:8080/healthz
 | Env var      | Default | Description           |
 | ------------ | ------- | --------------------- |
 | `EYEDP_ADDR` | `:8080` | Address to listen on. |
+| `EYEDP_DEV_USER` | (unset) | `username:password` of a user to create at startup (dev only; storage is in-memory). |
 
 ```sh
 go test ./...                    # run tests

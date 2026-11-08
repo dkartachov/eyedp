@@ -49,6 +49,15 @@ func TestRunInvalidAddr(t *testing.T) {
 	}
 }
 
+func TestRunInvalidDevUser(t *testing.T) {
+	env := map[string]string{"EYEDP_ADDR": "127.0.0.1:0", "EYEDP_DEV_USER": "no-colon"}
+
+	err := run(t.Context(), func(k string) string { return env[k] }, &bytes.Buffer{})
+	if err == nil || !strings.Contains(err.Error(), "EYEDP_DEV_USER") {
+		t.Fatalf("run error = %v, want EYEDP_DEV_USER format error", err)
+	}
+}
+
 func TestEnvOr(t *testing.T) {
 	env := map[string]string{"SET": "value", "EMPTY": ""}
 	getenv := func(k string) string { return env[k] }
