@@ -10,7 +10,7 @@ import (
 )
 
 func TestHealth(t *testing.T) {
-	h := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	h := New(Deps{Logger: slog.New(slog.NewTextHandler(io.Discard, nil))})
 
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/healthz", nil))
@@ -32,7 +32,7 @@ func TestHealth(t *testing.T) {
 }
 
 func TestHealthRejectsWrongMethod(t *testing.T) {
-	h := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	h := New(Deps{Logger: slog.New(slog.NewTextHandler(io.Discard, nil))})
 
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/healthz", nil))
