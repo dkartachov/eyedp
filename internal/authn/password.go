@@ -34,8 +34,12 @@ func HashPassword(password string) string {
 	return fmt.Sprintf("$argon2id$v=19$m=%d,t=%d,p=%d$%s$%s", memory, time, parallelism, saltEncoded, keyEncoded)
 }
 
-// ErrInvalidPassword is returned by VerifyPassword when the password does not match the stored hash.
-var ErrInvalidPassword = errors.New("authn: invalid password")
+var (
+	// ErrInvalidPassword is returned by VerifyPassword when the password does not match the stored hash.
+	ErrInvalidPassword = errors.New("authn: invalid password")
+	// ErrMalformedHash is returned by VerifyPassword when the stored hash is malformed or cannot be parsed.
+	ErrMalformedHash = errors.New("authn: malformed encoded hash")
+)
 
 // TODO(review): improvements for VerifyPassword
 //   - Bound the parsed parameters before calling argon2.IDKey. Today these
@@ -46,56 +50,49 @@ var ErrInvalidPassword = errors.New("authn: invalid password")
 //     huge m (e.g. 4294967295) -> ~4 TiB allocation -> OOM
 //     Reject t < 1, p < 1, key length 0, and values above sane limits
 //     (e.g. m > 1 GiB, salt/key too short or too long).
-//   - Update the doc comment below: it still describes the old (bool, error)
-//     contract. New contract: nil on match, ErrInvalidPassword on mismatch,
-//     other errors for a malformed hash.
-//   - Add a sentinel (e.g. ErrMalformedHash) and wrap every format error with
-//     %w, so callers can tell "wrong password" from "corrupt stored data"
-//     and tests can use errors.Is instead of string matching.
 //   - fmt.Sscanf ignores trailing input ("v=19garbage", "m=..,p=4,x=1" parse).
 //     Make parsing strict, e.g. re-format the parsed values and compare.
-//   - Add a doc comment to ErrInvalidPassword (revive).
 //   - uint32(len(originalKey)) trips gosec G115; a key length bound fixes it.
 
 // VerifyPassword reports whether password matches encoded, a value produced
-// by HashPassword. It returns an error only if encoded is malformed, not for
-// a wrong password.
+// by HashPassword. It returns ErrInvalidPassword if the password does not match,
+// and other errors for a malformed encoded hash.
 func VerifyPassword(password, encoded string) error {
 	parts := strings.Split(encoded, "$")
 
 	if len(parts) != 6 {
-		return fmt.Errorf("invalid hash format")
+		return fmt.Errorf("%w: invalid hash format", ErrMalformedHash)
 	}
 
 	if parts[1] != "argon2id" {
-		return fmt.Errorf("invalid identifier")
+		return fmt.Errorf("%w: invalid identifier", ErrMalformedHash)
 	}
 
 	var version int
 	_, err := fmt.Sscanf(parts[2], "v=%d", &version)
 	if err != nil {
-		return fmt.Errorf("failed to parse argon2 version: %w", err)
+		return fmt.Errorf("%w: failed to parse argon2 version: %w", ErrMalformedHash, err)
 	}
 
 	if version != argon2.Version {
-		return fmt.Errorf("unsupported argon2 version: %d", version)
+		return fmt.Errorf("%w: unsupported argon2 version: %d", ErrMalformedHash, version)
 	}
 
 	var memory, time uint32
 	var parallelism uint8
 	_, err = fmt.Sscanf(parts[3], "m=%d,t=%d,p=%d", &memory, &time, &parallelism)
 	if err != nil {
-		return fmt.Errorf("failed to parse parameters: %w", err)
+		return fmt.Errorf("%w: failed to parse parameters: %w", ErrMalformedHash, err)
 	}
 
 	salt, err := base64.RawStdEncoding.DecodeString(parts[4])
 	if err != nil {
-		return fmt.Errorf("failed to decode salt: %w", err)
+		return fmt.Errorf("%w: failed to decode salt: %w", ErrMalformedHash, err)
 	}
 
 	originalKey, err := base64.RawStdEncoding.DecodeString(parts[5])
 	if err != nil {
-		return fmt.Errorf("failed to decode key: %w", err)
+		return fmt.Errorf("%w: failed to decode key: %w", ErrMalformedHash, err)
 	}
 
 	// #nosec G115 - Key length will never exceed math.MaxUint32
