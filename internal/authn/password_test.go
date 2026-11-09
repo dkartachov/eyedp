@@ -9,17 +9,26 @@ import (
 
 var phcRegex = regexp.MustCompile(`^\$argon2id\$v=19\$m=65536,t=3,p=4\$[A-Za-z0-9+/]{22}\$[A-Za-z0-9+/]{43}$`)
 
-// TODO(review): improvements for TestHashPassword
-//   - Add a salt-uniqueness test: hash the same password twice and check
-//     the results differ (catches a zeroed or fixed salt).
-
 func TestHashPassword(t *testing.T) {
 	password := "Password123!"
-	hash := HashPassword(password)
 
-	if !phcRegex.MatchString(hash) {
-		t.Errorf("expected hash to match PHC format, got: %s", hash)
-	}
+	t.Run("ValidPHCFormat", func(t *testing.T) {
+		hash := HashPassword(password)
+
+		if !phcRegex.MatchString(hash) {
+			t.Errorf("expected hash to match PHC format, got: %s", hash)
+		}
+	})
+
+	t.Run("UniqueHashesForSamePassword", func(t *testing.T) {
+		hash1 := HashPassword(password)
+		hash2 := HashPassword(password)
+
+		if hash1 == hash2 {
+			t.Errorf("expected different hashes for the same password, got: %s and %s", hash1, hash2)
+		}
+	})
+
 }
 
 // TODO(review): improvements for TestVerifyPassword
