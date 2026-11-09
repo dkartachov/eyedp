@@ -3,6 +3,7 @@ package httpx
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -76,5 +77,21 @@ func TestLogRequests(t *testing.T) {
 				t.Errorf("logged status = %d, want %d", entry.Status, tt.wantStatus)
 			}
 		})
+	}
+}
+
+func TestLogRequestsSupportsResponseController(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	h := LogRequests(logger, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		if err := http.NewResponseController(w).Flush(); err != nil {
+			t.Errorf("Flush through LogRequests: %v", err)
+		}
+	}))
+
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil))
+
+	if !rec.Flushed {
+		t.Error("underlying writer was not flushed")
 	}
 }

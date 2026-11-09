@@ -41,8 +41,8 @@ func ClearCookie(w http.ResponseWriter) {
 	})
 }
 
-// IDFromRequest returns the session ID from r's cookie, if present.
-func IDFromRequest(r *http.Request) (string, bool) {
+// idFromRequest returns the session ID from r's cookie, if present.
+func idFromRequest(r *http.Request) (string, bool) {
 	c, err := r.Cookie(CookieName)
 	if err != nil || c.Value == "" {
 		return "", false
@@ -52,8 +52,8 @@ func IDFromRequest(r *http.Request) (string, bool) {
 
 type ctxKey struct{}
 
-// NewContext returns a copy of ctx carrying s.
-func NewContext(ctx context.Context, s Session) context.Context {
+// newContext returns a copy of ctx carrying s.
+func newContext(ctx context.Context, s Session) context.Context {
 	return context.WithValue(ctx, ctxKey{}, s)
 }
 
@@ -74,7 +74,7 @@ type Looker interface {
 // is cleared.
 func Load(sessions Looker, logger *slog.Logger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		id, ok := IDFromRequest(r)
+		id, ok := idFromRequest(r)
 		if !ok {
 			next.ServeHTTP(w, r)
 			return
@@ -89,7 +89,7 @@ func Load(sessions Looker, logger *slog.Logger, next http.Handler) http.Handler 
 			logger.Error("look up session", "err", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		default:
-			next.ServeHTTP(w, r.WithContext(NewContext(r.Context(), s)))
+			next.ServeHTTP(w, r.WithContext(newContext(r.Context(), s)))
 		}
 	})
 }

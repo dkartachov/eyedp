@@ -7,15 +7,19 @@ import (
 
 	"github.com/dkartachov/eyedp/internal/authn"
 	"github.com/dkartachov/eyedp/internal/httpx"
+	"github.com/dkartachov/eyedp/internal/session"
+	"github.com/dkartachov/eyedp/internal/user"
 	"github.com/dkartachov/eyedp/web"
 )
 
-// Deps are the domain services the HTTP layer is built on.
+// Deps are the domain services the HTTP layer is built on. They are concrete
+// types: interfaces belong to the handlers that consume them, not to the
+// wiring.
 type Deps struct {
 	Logger   *slog.Logger
-	Auth     authn.CredentialChecker
-	Sessions authn.SessionManager
-	Users    authn.UserGetter
+	Auth     *authn.Authenticator
+	Sessions *session.Manager
+	Users    user.Store
 }
 
 // New returns the root HTTP handler for the identity provider.

@@ -150,11 +150,13 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
+// logout ends the current session, if any. Without a valid session there is
+// nothing to clear: either no cookie was sent, or Load already cleared a
+// stale one.
 func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
 	if s, ok := session.FromContext(r.Context()); ok {
 		h.endSession(w, r, s.ID)
 	}
-	session.ClearCookie(w)
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 

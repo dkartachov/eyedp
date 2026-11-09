@@ -267,7 +267,26 @@ func TestLogout(t *testing.T) {
 	if c := sessionCookie(rec); c == nil || c.MaxAge >= 0 {
 		t.Errorf("session cookie not cleared: %+v", c)
 	}
+	if n := len(rec.Result().Cookies()); n != 1 {
+		t.Errorf("got %d Set-Cookie headers, want 1", n)
+	}
 	if _, err := sessions.Lookup(t.Context(), s.ID); err == nil {
 		t.Error("session was not destroyed")
+	}
+}
+
+func TestLogoutStaleCookie(t *testing.T) {
+	mux := newTestMux(fakeAuth{}, newFakeSessions())
+
+	rec := do(t, mux, http.MethodPost, "/logout", url.Values{}, "stale")
+
+	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/login" {
+		t.Errorf("POST /logout = %d %q, want 303 /login", rec.Code, rec.Header().Get("Location"))
+	}
+	if n := len(rec.Result().Cookies()); n != 1 {
+		t.Errorf("got %d Set-Cookie headers, want 1", n)
+	}
+	if c := sessionCookie(rec); c == nil || c.MaxAge >= 0 {
+		t.Errorf("stale session cookie not cleared: %+v", c)
 	}
 }
