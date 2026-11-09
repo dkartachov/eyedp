@@ -100,10 +100,7 @@ func seedDevUser(ctx context.Context, users user.Store, spec string) error {
 		return errors.New(`EYEDP_DEV_USER must be "username:password"`)
 	}
 
-	hash, err := authn.HashPassword(password)
-	if err != nil {
-		return fmt.Errorf("hash dev user password: %w", err)
-	}
+	hash := authn.HashPassword(password)
 	if _, err := users.Create(ctx, user.User{Username: username, PasswordHash: hash}); err != nil {
 		return fmt.Errorf("create dev user: %w", err)
 	}
