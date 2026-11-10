@@ -27,7 +27,6 @@ func TestHashPassword(t *testing.T) {
 			t.Errorf("expected different hashes for the same password, got: %s and %s", hash1, hash2)
 		}
 	})
-
 }
 
 // TODO(review): improvements for TestVerifyPassword
