@@ -5,6 +5,7 @@ package authn
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/dkartachov/eyedp/internal/user"
 )
@@ -27,22 +28,43 @@ type UserFinder interface {
 
 // Authenticator checks username/password credentials against the user store.
 type Authenticator struct {
-	users UserFinder
+	dummyHash string
+	users     UserFinder
 }
 
 // NewAuthenticator returns an Authenticator backed by users.
 func NewAuthenticator(users UserFinder) *Authenticator {
-	return &Authenticator{users: users}
+	return &Authenticator{dummyHash: HashPassword("vEcgN7GGUNxn0NzI"), users: users}
 }
 
 // Authenticate returns the user identified by username if password is
 // correct.
 //
-// It must return ErrInvalidCredentials both when the user does not exist and
-// when the password is wrong, so callers cannot tell the two apart. Ideally it
-// also takes about the same time in both cases, so an attacker cannot
-// enumerate usernames by timing the response. Any other error (e.g. the store
-// failing) is returned as-is and shown to the user as a 500.
-func (a *Authenticator) Authenticate(ctx context.Context, username, password string) (user.User, error) { //nolint:revive // TODO: remove once implemented (unused params)
-	panic("TODO: implement Authenticator.Authenticate")
+// It returns ErrInvalidCredentials both when the user does not exist and
+// when the password is wrong, so callers cannot tell the two apart. It verifies
+// against a dummy hash on user not found, so the timing is similar to a real user
+// and an attacker cannot enumerate usernames by timing the response.
+func (a *Authenticator) Authenticate(ctx context.Context, username, password string) (user.User, error) {
+	u, err := a.users.ByUsername(ctx, username)
+	if err != nil {
+		if errors.Is(err, user.ErrNotFound) {
+			// Verify against a dummy hash to make the timing similar to a real user
+			_ = VerifyPassword(password, a.dummyHash)
+
+			return user.User{}, ErrInvalidCredentials
+		}
+
+		return user.User{}, fmt.Errorf("authn: look up user: %w", err)
+	}
+
+	err = VerifyPassword(password, u.PasswordHash)
+	if err != nil {
+		if errors.Is(err, ErrInvalidPassword) {
+			return user.User{}, ErrInvalidCredentials
+		}
+
+		return user.User{}, fmt.Errorf("authn: verify password for user %s: %w", u.ID, err)
+	}
+
+	return u, nil
 }
